@@ -7,16 +7,21 @@
 
 ## 🚀 Setup Instructions
 
-1. **Copy folder** to your server root:
-   - Laragon: `C:\laragon\www\LibrarySystem\`
-   - XAMPP:   `C:\xampp\htdocs\LibrarySystem\`
+1. **Project location:**
+   ```
+   D:\laragon\www\LibrarySystem1\
+   ```
 
-2. **Import database:**
+2. **Import the database:**
    - Open `http://localhost/phpmyadmin`
-   - Click **Import** → select `sql/library_db.sql` → click **Go**
+   - Click **Import**
+   - Select the file: `D:\laragon\www\LibrarySystem1\sql\library_db.sql`
+   - Click **Go**
 
-3. **Open in browser:**
-   - `http://localhost/LibrarySystem/`
+3. **Open the project in your browser:**
+   ```
+   http://localhost/LibrarySystem1/
+   ```
 
 ---
 
@@ -33,32 +38,31 @@
 
 ## ✅ Features
 
-**Student:** Register · Login/Logout · Browse books · Search · Borrow · View history · Return books
+**Student:** Register · Login / Logout · Browse books · Search · Borrow · View history · Return books
 
-**Admin:** Login/Logout · Dashboard with stats · View recent transactions · Manage books · Delete books
+**Admin:** Login / Logout · Dashboard with live stats · View recent transactions · Manage books · Delete books
 
 ---
 
 ## 🔒 Security
 
-- PDO Prepared Statements (SQL injection prevention)
-- `htmlspecialchars()` on all output (XSS prevention)
-- CSRF tokens on all POST forms
-- `session_regenerate_id()` on login
-- Server-side + client-side input validation
-- Role-based access control
-- `password_hash()` / `password_verify()`
+- PDO Prepared Statements — SQL injection prevention
+- `htmlspecialchars()` on all output — XSS prevention
+- Server-side and client-side input validation
+- `session_regenerate_id()` on login — session fixation prevention
+- Role-based access control (admin / student)
+- `password_hash()` and `password_verify()` for secure passwords
 
 ---
 
 ## 📁 File Structure
 
 ```
-LibrarySystem/
+LibrarySystem1/
 ├── index.php
+├── README.md
 ├── includes/
-│   ├── config.php
-│   └── csrf_helper.php
+│   └── config.php
 ├── auth/
 │   ├── login.php
 │   ├── register.php
