@@ -1,42 +1,35 @@
 <?php
 session_start();
 require_once '../includes/config.php';
-require_once '../includes/csrf_helper.php';
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reg'])) {
+    $username = trim($_POST['username'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $error = "Invalid request. Please try again.";
+    if (empty($username) || empty($email) || empty($password)) {
+        $error = "All fields are required.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Please enter a valid email address.";
+    } elseif (strlen($password) < 6) {
+        $error = "Password must be at least 6 characters.";
     } else {
-        $username = trim($_POST['username'] ?? '');
-        $email    = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
-
-        if (empty($username) || empty($email) || empty($password)) {
-            $error = "All fields are required.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Please enter a valid email address.";
-        } elseif (strlen($password) < 6) {
-            $error = "Password must be at least 6 characters.";
+        $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+        $check->execute([$email]);
+        if ($check->fetch()) {
+            $error = "This email is already registered.";
         } else {
-            // Check duplicate email
-            $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-            $check->execute([$email]);
-            if ($check->fetch()) {
-                $error = "This email is already registered.";
-            } else {
-                try {
-                    $stmt = $pdo->prepare(
-                        "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'student')"
-                    );
-                    $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT)]);
-                    header("Location: login.php?success=1");
-                    exit();
-                } catch (PDOException $e) {
-                    $error = "Registration failed. Please try again.";
-                }
+            try {
+                $stmt = $pdo->prepare(
+                    "INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'student')"
+                );
+                $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT)]);
+                header("Location: login.php?success=1");
+                exit();
+            } catch (PDOException $e) {
+                $error = "Registration failed. Please try again.";
             }
         }
     }
@@ -54,15 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reg'])) {
 </head>
 <body>
 <header><h1>📚 YIC Library System</h1></header>
-
 <main>
 <div class="form-wrap">
     <form method="POST" action="" id="registerForm" novalidate>
-        <?= csrfInput() ?>
         <h2 class="page-title">📝 Create Account</h2>
 
         <?php if ($error): ?>
-            <div class="alert-error" role="alert">❌ <?= htmlspecialchars($error) ?></div>
+            <div class="alert-error">❌ <?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
         <div id="registerError" class="alert-error" style="display:none;"></div>
@@ -86,7 +77,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_reg'])) {
     </form>
 </div>
 </main>
-
 <footer><p>&copy; 2026 Yanbu Industrial College — Library System</p></footer>
 <script src="../assets/js/script.js"></script>
 </body>
