@@ -1,50 +1,36 @@
 <?php
 session_start();
 require_once '../includes/config.php';
-require_once '../includes/csrf_helper.php';
 
-// Already logged in → redirect
 if (isset($_SESSION['user_id'])) {
-    header($_SESSION['role'] === 'admin'
-        ? "Location: ../admin/dashboard.php"
-        : "Location: ../student/browse.php");
+    header($_SESSION['role'] === 'admin' ? "Location: ../admin/dashboard.php" : "Location: ../student/browse.php");
     exit();
 }
 
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    // CSRF check
-    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $error = "Invalid request. Please try again.";
+    if (empty($email) || empty($password)) {
+        $error = "All fields are required.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Please enter a valid email address.";
     } else {
-        $email    = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
 
-        // Server-side validation
-        if (empty($email) || empty($password)) {
-            $error = "All fields are required.";
-        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $error = "Please enter a valid email address.";
+        if ($user && password_verify($password, $user['password'])) {
+            session_regenerate_id(true);
+            $_SESSION['user_id']  = $user['id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role']     = $user['role'];
+            header($user['role'] === 'admin' ? "Location: ../admin/dashboard.php" : "Location: ../student/browse.php");
+            exit();
         } else {
-            // PDO prepared statement
-            $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-            $user = $stmt->fetch();
-
-            if ($user && password_verify($password, $user['password'])) {
-                session_regenerate_id(true);
-                $_SESSION['user_id']  = $user['id'];
-                $_SESSION['username'] = $user['username'];
-                $_SESSION['role']     = $user['role'];
-                header($user['role'] === 'admin'
-                    ? "Location: ../admin/dashboard.php"
-                    : "Location: ../student/browse.php");
-                exit();
-            } else {
-                $error = "Invalid email or password.";
-            }
+            $error = "Invalid email or password.";
         }
     }
 }
@@ -61,21 +47,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 </head>
 <body>
 <header><h1>📚 YIC Library System</h1></header>
-
 <main>
 <div class="form-wrap">
     <form method="POST" action="" id="loginForm" novalidate>
-        <?= csrfInput() ?>
         <h2 class="page-title">🔐 Welcome Back</h2>
 
         <?php if (isset($_GET['success']) && $_GET['success'] === '1'): ?>
-            <div class="alert-success" role="alert">
-                ✅ Registration successful! You can now log in.
-            </div>
+            <div class="alert-success">✅ Registration successful! You can now log in.</div>
         <?php endif; ?>
 
         <?php if ($error): ?>
-            <div class="alert-error" role="alert">❌ <?= htmlspecialchars($error) ?></div>
+            <div class="alert-error">❌ <?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
 
         <div id="loginError" class="alert-error" style="display:none;"></div>
@@ -83,8 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         <label for="email">Email Address</label>
         <input type="email" id="email" name="email"
                placeholder="e.g. admin@yic.edu.sa"
-               value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
-               required autocomplete="email">
+               value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
 
         <label for="password">Password</label>
         <input type="password" id="password" name="password"
@@ -95,7 +76,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     </form>
 </div>
 </main>
-
 <footer><p>&copy; 2026 Yanbu Industrial College — Library System</p></footer>
 <script src="../assets/js/script.js"></script>
 </body>
